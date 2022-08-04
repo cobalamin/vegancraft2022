@@ -1,0 +1,129 @@
+import com.github.spotbugs.snom.SpotBugsTask
+import java.text.SimpleDateFormat
+
+plugins {
+    id 'checkstyle'
+    id "com.github.spotbugs" version "5.0.9"
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'java'
+}
+
+group = "com.crimsonwarpedcraft.exampleplugin"
+
+static def getTime() {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd-HHmm")
+    sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return sdf.format(new Date()).toString()
+}
+
+// Set version to version property if supplied
+String shortVersion = null
+if (hasProperty('ver')) {
+    if (ver.charAt(0) == "v") {
+        shortVersion = ver.substring(1)
+    } else {
+        shortVersion = ver
+    }
+}
+
+if (shortVersion == null || shortVersion == "") {
+    shortVersion = getTime()
+}
+
+// Add snapshot identifier to version
+version = shortVersion + "-SNAPSHOT"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    maven {
+        name 'papermc'
+        url 'https://repo.papermc.io/repository/maven-public/'
+        content {
+            includeModule("io.papermc.paper", "paper-api")
+            includeModule("io.papermc", "paperlib")
+            includeModule("net.md-5", "bungeecord-chat")
+        }
+    }
+
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.7.1'
+    implementation 'io.papermc:paperlib:1.0.7'
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.12.0'
+    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.7.1'
+    testImplementation 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+processResources {
+    filesMatching("**/plugin.yml") {
+        expand ( NAME: rootProject.name, VERSION: version, PACKAGE: project.group.toString() )
+    }
+}
+
+checkstyle {
+    toolVersion '10.3.1'
+    maxWarnings = 0
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.required = false
+        html.required = true
+    }
+}
+
+tasks.withType(SpotBugsTask) {
+    reports {
+        xml {
+            required.set(false)
+        }
+        html {
+            required.set(true)
+        }
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    relocate 'io.papermc.lib', 'shadow.io.papermc.paperlib'
+    minimize()
+}
+
+// Disable jar and replace with shadowJar
+jar.enabled = false
+assemble.dependsOn(shadowJar)
+
+task configureRelease {
+    doLast {
+        // Trim the "-SNAPSHOT" extension from version
+        version = shortVersion
+    }
+}
+
+// Make sure configuration runs in the correct order
+build.mustRunAfter(configureRelease)
+
+task release {
+    dependsOn build
+    dependsOn configureRelease
+
+    doLast {
+        // Rename final JAR to trim off version information
+        shadowJar.archiveFile.get().getAsFile()
+                .renameTo(buildDir.toString() + File.separator + 'libs' + File.separator
+                        + rootProject.name + '.jar')
+    }
+}
