@@ -1,4 +1,4 @@
-package com.crimsonwarpedcraft.exampleplugin;
+package de.chipf0rk.vegancraft2022;
 
 import org.junit.jupiter.api.Test;
 
