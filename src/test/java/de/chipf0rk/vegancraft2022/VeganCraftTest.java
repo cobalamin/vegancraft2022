@@ -3,11 +3,11 @@ package de.chipf0rk.vegancraft2022;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for ExamplePlugin.
+ * Tests for VeganCraft 2022.
  *
- * @author Copyright (c) Levi Muniz. All Rights Reserved.
+ * @author Copyright (c) Simon Welker. All Rights Reserved.
  */
-public class ExamplePluginTest {
+public class VeganCraftTest {
 
   @Test
   public void onEnable() {
